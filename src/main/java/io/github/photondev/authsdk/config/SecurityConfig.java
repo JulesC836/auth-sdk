@@ -3,6 +3,7 @@ package io.github.photondev.authsdk.config;
 import java.time.Instant;
 import java.util.List;
 
+import io.github.photondev.authsdk.config.utils.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;

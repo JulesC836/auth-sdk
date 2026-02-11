@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>io.github.photondev</groupId>
 	<artifactId>auth-sdk</artifactId>
-	<version>1.0.0</version>
+	<version>1.1.0</version>
 	<name>Auth-service</name>
 	<description>Authentication service for the starter sdk</description>
 	<url />
@@ -127,10 +127,7 @@
 
 	<build>
 		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
+
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

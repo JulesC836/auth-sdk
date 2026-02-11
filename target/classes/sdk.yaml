@@ -1,0 +1,6 @@
+io:
+  github:
+    photondev:
+      authsdk:
+        name: "auth-sdk"
+        url:

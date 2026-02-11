@@ -2,11 +2,12 @@
 /home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/annotation/annotations/FieldsValueMatch.java
 /home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/annotation/classes/FieldsValueMatchValidator.java
 /home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/config/ApplicationConfig.java
-/home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/config/BlacklistFilter.java
-/home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/config/JwtAuthFilter.java
-/home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/config/JwtUtil.java
+/home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/config/SdkConfig.java
 /home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/config/SecurityConfig.java
 /home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/config/SecurityProperties.java
+/home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/config/utils/BlacklistFilter.java
+/home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/config/utils/JwtAuthFilter.java
+/home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/config/utils/JwtUtil.java
 /home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/dto/LoginRequest.java
 /home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/dto/RegisterRequest.java
 /home/jules/codenv/spring-boot/auth-sdk/src/main/java/io/github/photondev/authsdk/dto/UserResponse.java

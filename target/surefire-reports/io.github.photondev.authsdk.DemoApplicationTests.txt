@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: io.github.photondev.authsdk.DemoApplicationTests
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.387 s -- in io.github.photondev.authsdk.DemoApplicationTests
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.950 s -- in io.github.photondev.authsdk.DemoApplicationTests

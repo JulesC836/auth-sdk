@@ -35,29 +35,3 @@ logging:
   level: 
     root: error
 
-
-eureka:
-  instance:
-    prefer-ip-address: false
-    # Fréquence d'envoi des heartbeats (défaut: 30s)
-    lease-renewal-interval-in-seconds: 10
-    # Temps avant que le serveur considère l'instance comme morte (défaut: 90s)
-    lease-expiration-duration-in-seconds: 30
-
-  client:
-    enabled: true
-    register-with-eureka: true
-    fetch-registry: true
-#    service-url:
-#      defaultZone: http://REGISTRY-APP:8761/eureka/
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-
-management:
-  info:
-    env:
-      enabled: true
-  endpoints:
-    web:
-      exposure:
-        include: "*"

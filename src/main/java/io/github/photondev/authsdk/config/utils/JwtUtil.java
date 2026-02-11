@@ -1,4 +1,4 @@
-package io.github.photondev.authsdk.config;
+package io.github.photondev.authsdk.config.utils;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;

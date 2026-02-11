@@ -1,11 +1,10 @@
 io/github/photondev/authsdk/annotation/annotations/FieldsValueMatch$List.class
+io/github/photondev/authsdk/config/utils/BlacklistFilter.class
 io/github/photondev/authsdk/model/User.class
 io/github/photondev/authsdk/repository/UserRepo.class
 io/github/photondev/authsdk/config/SecurityConfig.class
 io/github/photondev/authsdk/config/ApplicationConfig.class
 io/github/photondev/authsdk/service/UserService.class
-io/github/photondev/authsdk/config/JwtUtil.class
-io/github/photondev/authsdk/config/BlacklistFilter.class
 io/github/photondev/authsdk/service/JwtService.class
 io/github/photondev/authsdk/dto/UserResponse.class
 io/github/photondev/authsdk/annotation/annotations/FieldsValueMatch.class
@@ -16,8 +15,10 @@ io/github/photondev/authsdk/model/User$UserBuilder.class
 io/github/photondev/authsdk/Authenticator.class
 io/github/photondev/authsdk/dto/UserResponse$UserResponseBuilder.class
 io/github/photondev/authsdk/annotation/classes/FieldsValueMatchValidator.class
+io/github/photondev/authsdk/config/SdkConfig.class
 io/github/photondev/authsdk/service/TokenBlacklistService.class
 io/github/photondev/authsdk/model/AuthValidationResponse.class
-io/github/photondev/authsdk/config/JwtAuthFilter.class
+io/github/photondev/authsdk/config/utils/JwtUtil.class
+io/github/photondev/authsdk/config/utils/JwtAuthFilter.class
 io/github/photondev/authsdk/config/SecurityProperties.class
 io/github/photondev/authsdk/service/RedisTokenBlacklistService.class

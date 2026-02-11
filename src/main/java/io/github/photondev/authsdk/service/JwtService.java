@@ -3,7 +3,7 @@ package io.github.photondev.authsdk.service;
 import java.util.Date;
 import java.util.stream.Collectors;
 
-import io.github.photondev.authsdk.config.JwtUtil;
+import io.github.photondev.authsdk.config.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;

@@ -1,7 +1,6 @@
 package io.github.photondev.authsdk;
 
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.RestController;
 
 import io.github.photondev.authsdk.dto.LoginRequest;
 import io.github.photondev.authsdk.dto.RegisterRequest;
@@ -21,8 +20,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
+import static java.rmi.server.LogStream.log;
+
 @Slf4j
-@RestController
 @RequiredArgsConstructor
 public class Authenticator {
 
@@ -34,20 +34,16 @@ public class Authenticator {
         return "Welcome";
     }
 
-    public ResponseEntity<?> saveUser(@Valid @RequestBody RegisterRequest request) throws Exception {
+    public UserResponse saveUser(RegisterRequest request) throws Exception {
         request.setRole("USER");
-        try {
-            User user = authService.signUp(request);
-            UserResponse newUser = userService.sendUser(user, null);
-            return ResponseEntity.ok(newUser);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Nom d'utilisateur déjà pris, faut changer " + e.getMessage(), HttpStatus.CONFLICT);
-        }
+
+        User user = authService.signUp(request);
+        UserResponse newUser = userService.sendUser(user, null);
+        return newUser;
 
     }
 
-    public ResponseEntity<?> Authenticate(@Valid @RequestBody LoginRequest cred) throws Exception {
-        try {
+    public UserResponse Authenticate(@Valid LoginRequest cred) throws Exception {
 
             String token = authService.login(cred);
 
@@ -55,54 +51,43 @@ public class Authenticator {
             UserResponse authedUser = userService.sendUser(
                     userService.getByUsername(cred.getUsername()),
                     token);
-            return ResponseEntity.ok(authedUser);
-        } catch (BadCredentialsException e) {
-            return new ResponseEntity<>("Mauvaises informations d'identification pour: "+ cred.getUsername(), HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Erreur d'authentification: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+            return authedUser;
+
     }
 
-    public ResponseEntity<AuthValidationResponse> validateToken(
+    public AuthValidationResponse validateToken(
             @RequestHeader("Authorization") String authorizationHeader) {
 
         // 1. Extraire et valider le jeton (Signature, Expiration, etc.)
         String token = authorizationHeader.substring(7);
+        AuthValidationResponse response = null;
 
         if ( authService.validate(token)) {
             // 2. Extraire les données de l'utilisateur du jeton (ou d'une BDD)
-
-            AuthValidationResponse response = new AuthValidationResponse(authService.getUserId(token), authService.getUserRole(token));
-            return ResponseEntity.ok(response);
-        } else {
-            // Jeton invalide
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            response = new AuthValidationResponse(authService.getUserId(token), authService.getUserRole(token));
         }
+        return response;
     }
 
-    public ResponseEntity<?> saveAdmin(@Valid @RequestBody RegisterRequest request) throws Exception {
+    public UserResponse saveAdmin(@Valid @RequestBody RegisterRequest request) throws Exception {
         request.setRole("ADMIN");
         User user = authService.signUp(request);
         if (user == null) {
-            return new ResponseEntity<>("Non d'utilisateur déjà pris, veuillez changer ", HttpStatus.CONFLICT);
+            log("Non d'utilisateur déjà pris, veuillez changer ");
+            return null;
         }
         UserResponse newUser = userService.sendUser(user, null);
-        return ResponseEntity.ok(newUser);
-
+        return newUser;
     }
 
-    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authorizationHeader) {
+    public String logout(@RequestHeader("Authorization") String authorizationHeader) {
         // 1. Extraire et valider le jeton (Signature, Expiration, etc.)
         String token = authorizationHeader.substring(7);
-        try{
             if (redisTokenBlacklistService.isBlacklisted(token)){
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Votre session est déjà suspendue");
+                return "Votre session est déjà suspendue";
             }
             redisTokenBlacklistService.add(token);
-            return ResponseEntity.ok("Vous avez été déconnecté");
-        }catch(Exception e){
-            return new ResponseEntity<>("Erreur lors de la déconnexion: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+            return "Vous avez été déconnecté";
 
     }
 
