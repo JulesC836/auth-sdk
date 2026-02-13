@@ -1,15 +1,6 @@
 server:
   port: 8081
 
-project:
-  build:
-    directory: target/
-
-info:
-  app:
-    name: "Auth service"
-    version: "1.0.0"
-    description: "Microservice d'authentification"
 
 spring:
   config:

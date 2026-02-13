@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 
 import io.github.photondev.authsdk.config.utils.JwtAuthFilter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -30,6 +31,7 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
 
     @Bean
+    @ConditionalOnMissingBean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -37,10 +39,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/v3/api-docs", "/swagger-ui.html", "/swagger-ui/**").permitAll()
-                        .requestMatchers("/api/auth/**", "/auth/**").permitAll()
                         .requestMatchers("/actuator/**", "/health", "/error").permitAll()
-                        .requestMatchers("/home").authenticated()
+                        .requestMatchers("/home").permitAll()
                         .requestMatchers("/control/**").hasAnyRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
