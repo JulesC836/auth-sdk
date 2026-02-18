@@ -1,50 +1,40 @@
 package io.github.photondev.authsdk.service;
 
-import java.util.Iterator;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+/**
+ * Interface pour la gestion de la blacklist de tokens.
+ * Les applications clientes doivent implémenter cette interface
+ * avec leur propre backend (Redis, Database, etc.)
+ */
+public interface TokenBlacklistService {
 
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
+    /**
+     * Ajoute un token à la blacklist
+     * 
+     * @param token Le token à blacklister
+     */
+    void blacklist(String token);
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+    /**
+     * Vérifie si un token est blacklisté
+     * 
+     * @param token Le token à vérifier
+     * @return true si blacklisté, false sinon
+     */
+    boolean isBlacklisted(String token);
 
-@Slf4j
-@RequiredArgsConstructor
-@Service
-public class TokenBlacklistService {
-    private final JwtService jwtService;
-    
-    // En production, utilisez Redis ou une base de données
-    private final Set<String> blacklistedTokens = ConcurrentHashMap.newKeySet();
-
-    // Blacklist a token
-    public void blacklistToken(String token) {
-        blacklistedTokens.add(token);
+    /**
+     * Supprime un token de la blacklist
+     * 
+     * @param token Le token à supprimer
+     */
+    default void remove(String token) {
+        // Implémentation optionnelle
     }
 
-    // Vérifie si un token est blacklisté
-    public boolean isTokenBlacklisted(String token) {
-        if (token!=null) {
-            return blacklistedTokens.contains(token);
-        }
-        return false;
+    /**
+     * Nettoie les tokens expirés de la blacklist
+     */
+    default void cleanupExpired() {
+        // Implémentation optionnelle
     }
-
-    // Nettoie les tokens expirés de la base de donnée
-    @Scheduled(fixedRate = 1, timeUnit = TimeUnit.HOURS)
-    public void cleanExpiredTokens() {
-        log.info("Cleaning expired tokens...");
-        Iterator<String> iterator = blacklistedTokens.iterator();
-        while (iterator.hasNext()) {
-            String token = iterator.next();
-            if (jwtService.isTokenExpired(token)) {
-                iterator.remove();
-            }
-        }
-    }
-    
-    
 }

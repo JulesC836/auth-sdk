@@ -24,7 +24,7 @@ public class RegisterRequest {
 
     @JsonIgnore
     @AssertTrue(message = "Les mots de passe ne correspondent pas")
-    public boolean isPasswordsMatching(){
+    public boolean isPasswordsMatching() {
         return this.password.equals(this.confirm);
     }
 }

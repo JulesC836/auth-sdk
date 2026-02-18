@@ -1,6 +1,5 @@
 package io.github.photondev.authsdk.dto;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

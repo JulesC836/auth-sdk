@@ -1,0 +1,73 @@
+{
+  "groups": [
+    {
+      "name": "jwt.auth",
+      "type": "io.github.photondev.authsdk.config.JwtAuthProperties",
+      "sourceType": "io.github.photondev.authsdk.config.JwtAuthProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "jwt.auth.blacklist-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Active\/désactive la gestion de la blacklist",
+      "sourceType": "io.github.photondev.authsdk.config.JwtAuthProperties",
+      "defaultValue": true
+    },
+    {
+      "name": "jwt.auth.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Active\/désactive l'authentification JWT",
+      "sourceType": "io.github.photondev.authsdk.config.JwtAuthProperties",
+      "defaultValue": true
+    },
+    {
+      "name": "jwt.auth.expiration",
+      "type": "java.lang.Long",
+      "description": "Durée de validité du token en millisecondes (défaut: 24h)",
+      "sourceType": "io.github.photondev.authsdk.config.JwtAuthProperties",
+      "defaultValue": 86400000
+    },
+    {
+      "name": "jwt.auth.header",
+      "type": "java.lang.String",
+      "description": "Nom du header HTTP contenant le token (défaut: Authorization)",
+      "sourceType": "io.github.photondev.authsdk.config.JwtAuthProperties",
+      "defaultValue": "Authorization"
+    },
+    {
+      "name": "jwt.auth.issuer",
+      "type": "java.lang.String",
+      "description": "Issuer du token",
+      "sourceType": "io.github.photondev.authsdk.config.JwtAuthProperties",
+      "defaultValue": "auth-sdk"
+    },
+    {
+      "name": "jwt.auth.prefix",
+      "type": "java.lang.String",
+      "description": "Préfixe du token (défaut: Bearer )",
+      "sourceType": "io.github.photondev.authsdk.config.JwtAuthProperties",
+      "defaultValue": "Bearer "
+    },
+    {
+      "name": "jwt.auth.secret",
+      "type": "java.lang.String",
+      "description": "Clé secrète pour signer les tokens",
+      "sourceType": "io.github.photondev.authsdk.config.JwtAuthProperties"
+    },
+    {
+      "name": "security.jwt.expiration-time",
+      "type": "java.lang.String",
+      "description": "A description for 'security.jwt.expiration-time'"
+    },
+    {
+      "name": "security.jwt.secret-key",
+      "type": "java.lang.String",
+      "description": "A description for 'security.jwt.secret-key'"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

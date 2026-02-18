@@ -1,4 +1,1 @@
-io.github.photondev.authsdk.config.ApplicationConfig;
-io.github.photondev.authsdk.config.utils.JwtAuthFilter;
-io.github.photondev.authsdk.config.SecurityConfig;
-
+io.github.photondev.authsdk.autoconfig.JwtAuthAutoConfiguration

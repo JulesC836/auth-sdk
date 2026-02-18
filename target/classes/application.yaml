@@ -1,28 +1,13 @@
-server:
-  port: 8081
+# Auth SDK - Configuration Example
+# This is an example configuration for the JWT Auth SDK
+# Copy these settings to your client application's application.yml
 
-
-spring:
-  config:
-    import:
-    - secrets.yaml
-    
-  application:
-    name: AUTH-SERVICE
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-    properties:
-      hibernate:
-        format-sql: true
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      
-    
-logging:
-  level: 
-    root: error
-
+jwt:
+  auth:
+    enabled: true
+    secret: 8c3xjsu02yKxJKHYGsze0cA3V8fF3HWqbFVzHXZP5MtJxhtoi984pz0vUQLyL7H2
+    expiration: 86400000
+    header: Authorization
+    prefix: "Bearer "
+    issuer: auth-sdk
+    blacklist-enabled: true
