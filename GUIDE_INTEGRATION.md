@@ -23,7 +23,7 @@ Dans le fichier `pom.xml` de votre projet qui va utiliser l'Auth SDK, ajoutez la
     <dependency>
         <groupId>io.github.photondev</groupId>
         <artifactId>auth-sdk</artifactId>
-        <version>1.2.0</version>
+        <version>1.0.0</version>
     </dependency>
     
     <!-- Les dépendances requises (si non déjà présentes) -->

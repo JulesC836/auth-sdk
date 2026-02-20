@@ -19,7 +19,7 @@ A minimal, production-ready Spring Boot starter for JWT authentication. This SDK
 <dependency>
     <groupId>io.github.photondev</groupId>
     <artifactId>auth-sdk</artifactId>
-    <version>1.1.0</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
