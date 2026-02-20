@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>io.github.photondev</groupId>
 	<artifactId>auth-sdk</artifactId>
-	<version>1.3.0</version>
+	<version>1.0.0</version>
 	<name>Auth-service</name>
 	<description>Authentication service for the starter sdk</description>
 	<url />
