@@ -1,210 +1,307 @@
-# Guide d'intégration de l'Auth SDK dans un autre projet
+# Integration Guide - Auth SDK
 
-## 📦 Étape 1 : Installer le SDK dans votre repository local Maven
+Step-by-step guide to integrate the Auth SDK into your Spring Boot application.
 
-Depuis le répertoire racine du projet `auth-sdk`, exécutez :
+## Step 1: Install SDK to Local Maven Repository
+
+From the auth-sdk project root directory:
 
 ```bash
 mvn clean install
 ```
 
-Cette commande va :
-- Compiler le projet
-- Créer le JAR `auth-sdk-1.2.0.jar`
-- L'installer dans votre repository Maven local (`~/.m2/repository`)
+This will:
+- Compile the project
+- Run unit tests
+- Create `auth-sdk-1.0.0.jar`
+- Install it in `~/.m2/repository`
 
-## 🔧 Étape 2 : Ajouter la dépendance dans le projet cible
+## Step 2: Add Dependency to Your Project
 
-Dans le fichier `pom.xml` de votre projet qui va utiliser l'Auth SDK, ajoutez la dépendance :
+In your project's `pom.xml`:
 
 ```xml
-<dependencies>
-    <!-- Auth SDK -->
-    <dependency>
-        <groupId>io.github.photondev</groupId>
-        <artifactId>auth-sdk</artifactId>
-        <version>1.0.0</version>
-    </dependency>
-    
-    <!-- Les dépendances requises (si non déjà présentes) -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-security</artifactId>
-    </dependency>
-    
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-</dependencies>
+<dependency>
+    <groupId>io.github.photondev</groupId>
+    <artifactId>auth-sdk</artifactId>
+    <version>1.0.0</version>
+</dependency>
 ```
 
-## ⚙️ Étape 3 : Configurer les propriétés JWT
+Ensure you also have Spring Security (usually inherited from `spring-boot-starter-security`):
 
-Dans le fichier `application.yml` (ou `application.properties`) de votre projet cible, ajoutez :
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+```
 
-### Format YAML (`application.yml`) :
+## Step 3: Configure JWT Properties
+
+In your `application.yml` or `application.properties`:
+
+### YAML Format
 
 ```yaml
 jwt:
   auth:
-    enabled: true                          # Active/désactive l'authentification JWT
-    secret: votre-cle-secrete-tres-longue  # Clé secrète pour signer les tokens (OBLIGATOIRE)
-    expiration: 86400000                    # Durée de validité en millisecondes (24h par défaut)
-    header: Authorization                   # Nom du header HTTP (défaut: Authorization)
-    prefix: "Bearer "                       # Préfixe du token (défaut: Bearer )
-    issuer: mon-application                 # Émetteur du token (défaut: auth-sdk)
-    blacklist-enabled: true                 # Active la gestion de la blacklist (défaut: true)
+    enabled: true                                    # Enable/disable auth module
+    secret: your-256-bit-secret-key-stored-securely # REQUIRED - at least 32 bytes
+    expiration: 86400000                             # Token validity (24 hours)
+    header: Authorization                            # HTTP header name (default)
+    prefix: "Bearer "                                # Token prefix (default)
+    issuer: my-application                           # JWT issuer claim
+    blacklist-enabled: true                          # Enable token revocation
 ```
 
-### Format Properties (`application.properties`) :
+### Properties Format
 
 ```properties
 jwt.auth.enabled=true
-jwt.auth.secret=votre-cle-secrete-tres-longue
+jwt.auth.secret=your-256-bit-secret-key-stored-securely
 jwt.auth.expiration=86400000
 jwt.auth.header=Authorization
 jwt.auth.prefix=Bearer 
-jwt.auth.issuer=mon-application
+jwt.auth.issuer=my-application
 jwt.auth.blacklist-enabled=true
 ```
 
-## 🚀 Étape 4 : L'auto-configuration fait le reste !
+## Step 4: Environment Variables (Recommended for Production)
 
-Grâce à Spring Boot Auto-Configuration, les beans suivants seront **automatiquement** créés et injectables :
+Instead of hardcoding secrets, use environment variables:
 
-1. **`JwtAuthProperties`** - Configuration des propriétés JWT
-2. **`JwtTokenProvider`** - Service de génération et validation des tokens
-3. **`TokenBlacklistService`** - Service de gestion de la blacklist (implémentation en mémoire par défaut)
-4. **`JwtAuthenticationFilter`** - Filtre d'authentification JWT
-5. **`TokenBlacklistFilter`** - Filtre de vérification de la blacklist
+```yaml
+jwt:
+  auth:
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION:86400000}
+    issuer: ${APP_NAME:default-app}
+    blacklist-enabled: ${JWT_BLACKLIST_ENABLED:true}
+```
 
-## 💉 Étape 5 : Utiliser les services dans votre code
+Then set environment variables:
+```bash
+export JWT_SECRET="your-very-long-secret-key-with-at-least-256-bits"
+```
 
-### Exemple 1 : Injecter `JwtAuthProperties`
+## Step 5: Implement Token Blacklist Service (Production)
+
+For development, the SDK provides an in-memory implementation. For production, implement with Redis:
 
 ```java
-package com.example.monprojet.service;
+package com.example.service;
 
-import io.github.photondev.authsdk.config.JwtAuthProperties;
+import io.github.photondev.authsdk.service.TokenBlacklistService;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import java.util.concurrent.TimeUnit;
 
 @Service
-public class MonService {
+public class RedisTokenBlacklistService implements TokenBlacklistService {
     
-    private final JwtAuthProperties jwtProperties;
+    private final RedisTemplate<String, String> redisTemplate;
+    private static final String PREFIX = "jwt:blacklist:";
     
-    public MonService(JwtAuthProperties jwtProperties) {
-        this.jwtProperties = jwtProperties;
+    public RedisTokenBlacklistService(RedisTemplate<String, String> redisTemplate) {
+        this.redisTemplate = redisTemplate;
     }
     
-    public void afficherConfiguration() {
-        System.out.println("Secret: " + jwtProperties.getSecret());
-        System.out.println("Expiration: " + jwtProperties.getExpiration());
-        System.out.println("Issuer: " + jwtProperties.getIssuer());
-        System.out.println("JWT activé: " + jwtProperties.isEnabled());
+    @Override
+    public void blacklist(String token) {
+        // Store token with 24-hour TTL
+        redisTemplate.opsForValue().set(PREFIX + token, "1", 24, TimeUnit.HOURS);
+    }
+    
+    @Override
+    public boolean isBlacklisted(String token) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + token));
+    }
+
+    @Override
+    public void remove(String token) {
+        redisTemplate.delete(PREFIX + token);
+    }
+
+    @Override
+    public void cleanupExpired() {
+        // Not needed - Redis handles TTL automatically
     }
 }
 ```
 
-### Exemple 2 : Injecter `JwtTokenProvider`
+Add Redis dependency to your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+
+## Step 6: Create Authentication Service
 
 ```java
-package com.example.monprojet.controller;
+package com.example.service;
 
 import io.github.photondev.authsdk.service.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import com.example.entity.User;
+import com.example.repository.UserRepository;
+import java.util.Map;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+    
+    private final JwtTokenProvider tokenProvider;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    
+    public AuthTokenResponse login(String username, String password) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new AuthenticationException("User not found"));
+        
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new AuthenticationException("Invalid password");
+        }
+        
+        String token = tokenProvider.generateToken(
+            user.getUsername(),
+            user.getRoles(),  // List of role names like ["ADMIN", "USER"]
+            Map.of(
+                "userId", user.getId(),
+                "email", user.getEmail()
+            )
+        );
+        
+        return new AuthTokenResponse(token, user.getUsername());
+    }
+}
+```
+
+## Step 7: Create REST Endpoints
+
+```java
+package com.example.controller;
+
+import io.github.photondev.authsdk.service.JwtTokenProvider;
+import io.github.photondev.authsdk.service.TokenBlacklistService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.dto.LoginRequest;
+import com.example.service.AuthService;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
     
-    private final JwtTokenProvider jwtTokenProvider;
-    
-    public AuthController(JwtTokenProvider jwtTokenProvider) {
-        this.jwtTokenProvider = jwtTokenProvider;
-    }
+    private final AuthService authService;
+    private final JwtTokenProvider tokenProvider;
+    private final TokenBlacklistService blacklistService;
     
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest request) {
-        // Après validation des credentials...
-        String token = jwtTokenProvider.generateToken(request.getUsername());
-        return new LoginResponse(token);
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            AuthTokenResponse response = authService.login(
+                request.getUsername(), 
+                request.getPassword()
+            );
+            return ResponseEntity.ok(response);
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing token"));
+        }
+        
+        String token = authHeader.substring(7);
+        
+        if (!tokenProvider.validateToken(token)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid token"));
+        }
+        
+        blacklistService.blacklist(token);
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
     
     @GetMapping("/validate")
-    public boolean validateToken(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.substring(7); // Retire "Bearer "
-        return jwtTokenProvider.validateToken(token);
+    public ResponseEntity<?> validate(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.ok(Map.of("valid", false));
+        }
+        
+        String token = authHeader.substring(7);
+        
+        if (!tokenProvider.validateToken(token) || blacklistService.isBlacklisted(token)) {
+            return ResponseEntity.ok(Map.of("valid", false));
+        }
+        
+        return ResponseEntity.ok(Map.of(
+            "valid", true,
+            "username", tokenProvider.getUsernameFromToken(token),
+            "roles", tokenProvider.getRolesFromToken(token),
+            "expires", tokenProvider.getExpirationDateFromToken(token)
+        ));
     }
 }
 ```
 
-### Exemple 3 : Injecter `TokenBlacklistService`
+## Step 8: Configure Spring Security
+
+Create a `SecurityConfig` class to configure how the authentication filters are applied:
 
 ```java
-package com.example.monprojet.service;
-
-import io.github.photondev.authsdk.service.TokenBlacklistService;
-import org.springframework.stereotype.Service;
-
-@Service
-public class LogoutService {
-    
-    private final TokenBlacklistService blacklistService;
-    
-    public LogoutService(TokenBlacklistService blacklistService) {
-        this.blacklistService = blacklistService;
-    }
-    
-    public void logout(String token) {
-        blacklistService.blacklistToken(token);
-        System.out.println("Token ajouté à la blacklist");
-    }
-}
-```
-
-## 🔒 Étape 6 : Configuration de Spring Security (optionnel)
-
-Si vous voulez personnaliser la configuration de sécurité, créez une classe de configuration :
-
-```java
-package com.example.monprojet.config;
+package com.example.config;
 
 import io.github.photondev.authsdk.filter.JwtAuthenticationFilter;
 import io.github.photondev.authsdk.filter.TokenBlacklistFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
     
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final TokenBlacklistFilter tokenBlacklistFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                         TokenBlacklistFilter tokenBlacklistFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.tokenBlacklistFilter = tokenBlacklistFilter;
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
     
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
+            .csrf(csrf -> csrf.disable())  // Disable CSRF for stateless JWT auth
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))  // No sessions
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/health").permitAll()
                 .anyRequest().authenticated()
             )
+            // Important: TokenBlacklistFilter MUST be before JwtAuthenticationFilter
             .addFilterBefore(tokenBlacklistFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         
@@ -213,89 +310,92 @@ public class SecurityConfig {
 }
 ```
 
-## 🎛️ Désactiver l'auto-configuration (si nécessaire)
+## Step 9: Verify Auto-Configuration
 
-Si vous voulez désactiver complètement l'Auth SDK :
-
-```yaml
-jwt:
-  auth:
-    enabled: false
-```
-
-Ou désactiver uniquement la blacklist :
-
-```yaml
-jwt:
-  auth:
-    blacklist-enabled: false
-```
-
-## 🔍 Vérifier que l'auto-configuration fonctionne
-
-Au démarrage de votre application, vous devriez voir dans les logs :
+On startup, you should see logs like:
 
 ```
 🔐 JWT Authentication SDK activé
 ✅ Configuration JwtTokenProvider
-⚠️ Utilisation de InMemoryTokenBlacklistService (dev uniquement)
 ✅ Configuration JwtAuthenticationFilter
 ✅ Configuration TokenBlacklistFilter
 ```
 
-## 📝 Configuration minimale requise
+## Step 10: Test the Integration
 
-**La seule configuration OBLIGATOIRE est la clé secrète** :
+### Login Request
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"password123"}'
+```
+
+Response:
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9...",
+  "username": "testuser"
+}
+```
+
+### Use Token to Access Protected Resource
+```bash
+curl -X GET http://localhost:8080/api/protected \
+  -H "Authorization: Bearer eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9..."
+```
+
+### Logout (Revoke Token)
+```bash
+curl -X POST http://localhost:8080/api/auth/logout \
+  -H "Authorization: Bearer eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9..."
+```
+
+### Validate Token
+```bash
+curl -X GET http://localhost:8080/api/auth/validate \
+  -H "Authorization: Bearer eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9..."
+```
+
+## Troubleshooting
+
+### "Secret key is too short" Error
+**Problem**: Your JWT secret is less than 256 bits (32 bytes)
+**Solution**: Set a stronger secret in `application.yml`
 
 ```yaml
 jwt:
   auth:
-    secret: votre-cle-secrete-tres-longue-et-securisee
+    secret: this-is-a-very-long-secret-key-with-at-least-256-bits-of-entropy-for-hs512
 ```
 
-Toutes les autres propriétés ont des valeurs par défaut.
+### Beans Not Auto-Configured
+**Problem**: `JwtTokenProvider` bean not found
+**Solution**: Ensure `spring-boot-starter-security` is in dependencies
 
-## 🌐 Remplacer l'implémentation par défaut
+### "Token révoqué" Error
+**Problem**: Your token is blacklisted (you logged out)
+**Solution**: Log in again to get a new token
 
-Vous pouvez fournir votre propre implémentation de `TokenBlacklistService` (par exemple avec Redis) :
+### Filter Order Issues
+**Problem**: Tokens not being validated
+**Solution**: Ensure filter order in `SecurityConfig`:
+1. `TokenBlacklistFilter` (check revocation)
+2. `JwtAuthenticationFilter` (extract and validate)
 
-```java
-package com.example.monprojet.service;
+## Production Checklist
 
-import io.github.photondev.authsdk.service.TokenBlacklistService;
-import org.springframework.stereotype.Service;
+- [ ] Use environment variables for `jwt.auth.secret`
+- [ ] Implement `TokenBlacklistService` with Redis or database
+- [ ] Enable HTTPS (never use HTTP with tokens)
+- [ ] Set appropriate token expiration times
+- [ ] Implement refresh token logic (if needed)
+- [ ] Add request logging and monitoring
+- [ ] Monitor failed authentication attempts
+- [ ] Regular security audits
 
-@Service
-public class RedisTokenBlacklistService implements TokenBlacklistService {
-    
-    // Votre implémentation avec Redis...
-    
-    @Override
-    public void blacklistToken(String token) {
-        // Implémentation avec Redis
-    }
-    
-    @Override
-    public boolean isBlacklisted(String token) {
-        // Implémentation avec Redis
-        return false;
-    }
-}
-```
+## Next Steps
 
-Spring Boot utilisera automatiquement votre implémentation au lieu de `InMemoryTokenBlacklistService`.
-
-## ✅ Résumé
-
-1. ✅ `mvn clean install` dans le projet auth-sdk
-2. ✅ Ajouter la dépendance dans le pom.xml du projet cible
-3. ✅ Configurer `jwt.auth.secret` dans application.yml
-4. ✅ Injecter les beans via constructeur ou @Autowired
-5. ✅ Tout fonctionne automatiquement ! 🎉
-
-## 🚨 Attention
-
-- **NE JAMAIS** commiter la clé secrète dans Git
-- Utilisez des variables d'environnement ou un gestionnaire de secrets en production
-- L'implémentation `InMemoryTokenBlacklistService` n'est pas adaptée à la production (les tokens blacklistés sont perdus au redémarrage)
+- See `README.md` for detailed API documentation
+- Check `exemple/` directory for a complete working example
+- Read Spring Security documentation: https://spring.io/projects/spring-security
 

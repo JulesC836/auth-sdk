@@ -1,20 +1,28 @@
 # Auth SDK - Spring Boot JWT Authentication Starter
 
-A minimal, production-ready Spring Boot starter for JWT authentication. This SDK provides the infrastructure for JWT token generation, validation, and blacklist management while leaving business logic (user models, DTOs, repositories) to your application.
+A production-ready Spring Boot starter library for JWT (JSON Web Token) authentication. This SDK provides secure token generation, validation, and revocation (blacklist) management, while delegating user management and business logic to your application.
 
-## Features
+## ✨ Features
 
-✅ **JWT Token Generation & Validation** - Built on JJWT library with HS512 signing  
-✅ **Spring Security Integration** - Automatic filter configuration  
-✅ **Token Blacklist Support** - Interface-based design, bring your own implementation  
-✅ **Auto-Configuration** - Zero-config startup with sensible defaults  
-✅ **Customizable** - Extensive configuration properties  
-✅ **Production-Ready** - Conditional bean creation, proper error handling  
+✅ **JWT Token Generation & Validation** - Built on JJWT library with HS512 (HMAC-SHA512) signing  
+✅ **Spring Security Integration** - Automatic filter configuration for request authentication  
+✅ **Token Blacklist Support** - Interface-based design for easy integration with Redis, databases, etc.  
+✅ **Spring Boot Auto-Configuration** - Zero-config startup with sensible defaults  
+✅ **Fully Customizable** - Extensive configuration properties for all JWT aspects  
+✅ **Production-Ready** - Validated secret keys, proper error handling, comprehensive logging  
 
-## Installation
+## 📋 Requirements
 
-### Maven
+- Java 17+
+- Spring Boot 3.5.7+
+- Spring Security (automatically included via starter)
+- Maven 3.6+ or Gradle 7.0+
 
+## 🚀 Quick Start
+
+### 1. Add Dependency
+
+#### Maven
 ```xml
 <dependency>
     <groupId>io.github.photondev</groupId>
@@ -23,33 +31,28 @@ A minimal, production-ready Spring Boot starter for JWT authentication. This SDK
 </dependency>
 ```
 
-### Gradle
-
+#### Gradle
 ```gradle
-implementation 'io.github.photondev:auth-sdk:1.1.0'
+implementation 'io.github.photondev:auth-sdk:1.0.0'
 ```
 
-## Quick Start
-
-### 1. Add Configuration
-
-Add to your `application.yml`:
+### 2. Configure JWT in `application.yml`
 
 ```yaml
 jwt:
   auth:
     enabled: true
     secret: your-super-secret-key-change-in-production-min-256-bits
-    expiration: 86400000  # 24 hours in milliseconds
+    expiration: 86400000        # 24 hours in milliseconds
     issuer: my-application
     blacklist-enabled: true
 ```
 
-⚠️ **Important**: Use a strong secret key (minimum 256 bits for HS512)
+**⚠️ CRITICAL**: Use a strong secret key (minimum 256 bits/32 bytes). The SDK will fail to start if the secret is too weak.
 
-### 2. Implement Token Blacklist Service
+### 3. Implement Token Blacklist Service (Optional)
 
-The SDK provides an interface - implement it with your storage backend:
+The SDK provides an in-memory implementation for development. For production, implement with Redis or a database:
 
 ```java
 @Service
@@ -67,14 +70,22 @@ public class RedisTokenBlacklistService implements TokenBlacklistService {
     public boolean isBlacklisted(String token) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + token));
     }
+
+    @Override
+    public void remove(String token) {
+        redisTemplate.delete(PREFIX + token);
+    }
+
+    @Override
+    public void cleanupExpired() {
+        // No action needed - Redis TTL handles automatic cleanup
+    }
 }
 ```
 
-> **Note**: An in-memory implementation is provided for development, but should NOT be used in production.
+Spring Boot will automatically use your implementation instead of the in-memory default.
 
-### 3. Use JWT Token Provider
-
-Inject `JwtTokenProvider` in your authentication service:
+### 4. Use in Your Authentication Service
 
 ```java
 @Service
@@ -86,7 +97,6 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     
     public AuthResponse login(LoginRequest request) {
-        // 1. Authenticate user (your business logic)
         User user = userRepository.findByUsername(request.getUsername())
             .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
             
@@ -94,20 +104,23 @@ public class AuthService {
             throw new BadCredentialsException("Invalid credentials");
         }
         
-        // 2. Generate JWT token
         String token = tokenProvider.generateToken(
             user.getUsername(),
-            Collections.singletonList(user.getRole()),
+            user.getRoles(),
             Map.of("userId", user.getId(), "email", user.getEmail())
         );
         
-        // 3. Return response
-        return new AuthResponse(token, user.getUsername(), user.getRole());
+        return new AuthResponse(token, user.getUsername());
+    }
+    
+    public void logout(String token) {
+        tokenProvider.validateToken(token); // Verify it's valid before revoking
+        // TokenBlacklistFilter will handle revocation automatically
     }
 }
 ```
 
-### 4. Create Controller Endpoints
+### 5. Create REST Endpoints
 
 ```java
 @RestController
@@ -136,13 +149,10 @@ public class AuthController {
         String token = authHeader.substring(7);
         
         if (tokenProvider.validateToken(token) && !blacklistService.isBlacklisted(token)) {
-            String username = tokenProvider.getUsernameFromToken(token);
-            List<String> roles = tokenProvider.getRolesFromToken(token);
-            
             return ResponseEntity.ok(Map.of(
                 "valid", true,
-                "username", username,
-                "roles", roles
+                "username", tokenProvider.getUsernameFromToken(token),
+                "roles", tokenProvider.getRolesFromToken(token)
             ));
         }
         
@@ -151,39 +161,37 @@ public class AuthController {
 }
 ```
 
-## Configuration Properties
+## ⚙️ Configuration Properties
 
 All properties are under the `jwt.auth` prefix:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `enabled` | boolean | `true` | Enable/disable JWT authentication |
+| `enabled` | boolean | `true` | Enable/disable JWT authentication module |
 | `secret` | string | **required** | Secret key for signing tokens (min 256 bits) |
-| `expiration` | long | `86400000` | Token validity in milliseconds (24h) |
-| `header` | string | `Authorization` | HTTP header containing the token |
-| `prefix` | string | `Bearer ` | Token prefix in the header |
-| `issuer` | string | `auth-sdk` | JWT issuer claim |
-| `blacklist-enabled` | boolean | `true` | Enable/disable token blacklist feature |
+| `expiration` | long | `86400000` | Token validity in milliseconds (24h default) |
+| `header` | string | `Authorization` | HTTP header name containing the token |
+| `prefix` | string | `Bearer ` | Token prefix in the header (e.g., "Bearer ", "Token ") |
+| `issuer` | string | `auth-sdk` | JWT issuer claim value |
+| `blacklist-enabled` | boolean | `true` | Enable/disable token revocation support |
 
-### Example Configuration
+### Environment Variables Example
 
 ```yaml
 jwt:
   auth:
     enabled: true
-    secret: ${JWT_SECRET:default-secret-key-change-me}
-    expiration: 3600000  # 1 hour
-    header: X-Auth-Token
-    prefix: "Token "
-    issuer: my-company-app
+    secret: ${JWT_SECRET}           # Required - set via environment variable
+    expiration: ${JWT_EXPIRATION:3600000}  # 1 hour default
+    issuer: ${APP_NAME:my-app}
     blacklist-enabled: true
 ```
 
-## Advanced Usage
+## 🔧 Advanced Usage
 
-### Custom Claims
+### Custom JWT Claims
 
-Add custom data to tokens:
+Add application-specific data to tokens:
 
 ```java
 Map<String, Object> customClaims = Map.of(
@@ -205,22 +213,20 @@ String token = tokenProvider.generateToken(
 ```java
 Long userId = tokenProvider.getClaimFromToken(token, "userId", Long.class);
 String email = tokenProvider.getClaimFromToken(token, "email", String.class);
+List<String> roles = tokenProvider.getRolesFromToken(token);
 ```
 
-### Generate from Spring Security Authentication
+### Generate Token from Spring Authentication
 
 ```java
 @PostMapping("/spring-login")
-public ResponseEntity<AuthResponse> springLogin(Authentication authentication) {
-    // Auto-extracts username and authorities from Authentication
+public ResponseEntity<String> springLogin(Authentication authentication) {
     String token = tokenProvider.generateToken(authentication);
-    return ResponseEntity.ok(new AuthResponse(token));
+    return ResponseEntity.ok(token);
 }
 ```
 
-### Disable Blacklist
-
-If you don't need logout functionality:
+### Disable Token Blacklist (if not needed)
 
 ```yaml
 jwt:
@@ -228,79 +234,136 @@ jwt:
     blacklist-enabled: false
 ```
 
-## Architecture
+## 🏗️ Architecture
 
-This is a **minimal starter** focused on JWT infrastructure. It does NOT include:
+The SDK is intentionally minimal and focuses on JWT infrastructure only. It does **NOT** include:
 
 - ❌ User entities or repositories
-- ❌ DTOs (login/register requests)
-- ❌ Controllers or REST endpoints
-- ❌ Password encoding
+- ❌ Login/register request DTOs
+- ❌ REST endpoints or controllers
+- ❌ Password encoding (use Spring Security's `PasswordEncoder`)
 - ❌ Database dependencies
+- ❌ Refresh token logic
 
-These are **your application's responsibility**. See the `example/` package for reference implementations.
+These responsibilities remain with your application. See the `example/` directory for a reference implementation.
 
-## Security Considerations
+## 🔒 Security Best Practices
 
-1. **Secret Key**: Use a strong secret key (minimum 256 bits). Store in environment variables, never hardcode.
-2. **HTTPS Only**: Always use HTTPS in production to prevent token interception.
-3. **Token Expiration**: Set appropriate expiration times based on your security requirements.
-4. **Blacklist Storage**: Use distributed storage (Redis, database) for production blacklists.
-5. **Validation**: Always validate tokens AND check blacklist before granting access.
+1. **Secret Key Management**
+   - Use a strong secret (minimum 256 bits)
+   - Store in environment variables, never hardcode
+   - Use a secrets manager (Vault, AWS Secrets Manager, etc.) in production
 
-## Example DTOs
+2. **HTTPS Only**
+   - Always use HTTPS in production
+   - Tokens sent in plain HTTP can be intercepted
 
-Reference DTOs are provided in the `io.github.photondev.authsdk.example.dto` package:
+3. **Token Expiration**
+   - Set appropriate expiration times (default: 24 hours)
+   - Shorter expiration for sensitive operations
+   - Implement refresh tokens for long-lived sessions
 
-- `LoginRequest` - Basic login DTO
-- `RegisterRequest` - Registration with password confirmation
-- `UserResponse` - Authentication response with token
+4. **Blacklist Strategy**
+   - Use distributed storage (Redis, database) for production
+   - **NOT** suitable for in-memory blacklist in multi-instance deployments
+   - Clean up expired tokens periodically
 
-These are examples only - create your own to match your business requirements.
+5. **Token Validation**
+   - Always validate tokens before granting access
+   - Check blacklist status for revoked tokens
+   - Validate claims match expected values
 
-## Troubleshooting
+## ❌ Common Mistakes
 
-### Beans not auto-configured
-
-Ensure Spring Security is on the classpath:
-
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-security</artifactId>
-</dependency>
+### Secret Key Too Short
 ```
-
-### "Secret key is too short" error
-
-Your secret must be at least 256 bits (32 characters) for HS512:
-
-```yaml
-jwt:
-  auth:
-    secret: this-is-a-very-long-secret-key-with-at-least-256-bits-of-entropy
+Error: JWT secret must be at least 256 bits (32 bytes)
 ```
+**Fix**: Use a longer secret key in `application.yml`
 
-### InMemoryTokenBlacklistService warning
+### Using InMemory Blacklist in Production
+**Problem**: Tokens blacklisted on one server instance won't be blacklisted on others
+**Fix**: Implement `TokenBlacklistService` with Redis or database
 
-This is expected - replace with your own implementation:
+### Not Validating Token Before Use
+**Problem**: Accepting invalid or expired tokens
+**Fix**: Always call `tokenProvider.validateToken(token)` before extracting claims
+
+### Storing Tokens in Local Storage (Frontend)
+**Problem**: Vulnerable to XSS attacks
+**Better**: Use httpOnly, secure cookies instead
+
+## 📚 API Reference
+
+### JwtTokenProvider
 
 ```java
-@Bean
-@Primary
-public TokenBlacklistService tokenBlacklistService() {
-    return new RedisTokenBlacklistService(...);
-}
+// Generate token with roles and custom claims
+String generateToken(String username, Collection<String> roles, Map<String, Object> additionalClaims);
+
+// Generate from Spring Authentication
+String generateToken(Authentication authentication);
+
+// Validate token signature and expiration
+boolean validateToken(String token);
+
+// Extract information
+String getUsernameFromToken(String token);
+List<String> getRolesFromToken(String token);
+<T> T getClaimFromToken(String token, String claimName, Class<T> type);
+Claims getClaims(String token);
+Date getExpirationDateFromToken(String token);
 ```
 
-## License
+### TokenBlacklistService (Interface)
 
-This project is licensed under the terms specified in the parent project.
+```java
+void blacklist(String token);           // Add token to blacklist
+boolean isBlacklisted(String token);    // Check if blacklisted
+void remove(String token);              // Remove from blacklist
+void cleanupExpired();                  // Clean expired tokens
+```
 
-## Contributing
+## 🧪 Testing
 
-Contributions are welcome! Please submit pull requests or open issues.
+The SDK includes unit tests for core components:
 
-## Support
+```bash
+mvn clean test
+```
 
-For issues, questions, or feature requests, please open an issue on GitHub.
+Example test cases cover:
+- Token generation with various claim types
+- Token validation (valid, expired, invalid signature)
+- Custom claim extraction
+- Secret key validation
+- Blacklist filter behavior
+
+## 📄 License
+
+This project is open source and available under the MIT License.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request with tests
+
+## 📞 Support
+
+- 📖 See `GUIDE_INTEGRATION.md` for step-by-step integration instructions
+- 🐛 Report issues on GitHub
+- 💬 Ask questions via GitHub Discussions
+
+---
+
+## Version History
+
+### 1.0.0 (Current)
+- ✅ JWT token generation and validation with HS512
+- ✅ Token blacklist support with pluggable backend
+- ✅ Spring Security integration
+- ✅ Spring Boot auto-configuration
+- ✅ Comprehensive unit tests
+- ✅ Production-ready security features
