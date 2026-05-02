@@ -23,7 +23,17 @@ public class JwtTokenProvider {
 
     public JwtTokenProvider(JwtAuthProperties properties) {
         this.properties = properties;
-        this.signingKey = Keys.hmacShaKeyFor(properties.getSecret().getBytes());
+
+        byte[] secretBytes = properties.getSecret().getBytes();
+        if (secretBytes.length < 32) {
+            throw new IllegalArgumentException(
+                "JWT secret must be at least 256 bits (32 bytes). Current: " +
+                (secretBytes.length * 8) + " bits. Set jwt.auth.secret with a stronger key."
+            );
+        }
+
+        this.signingKey = Keys.hmacShaKeyFor(secretBytes);
+        log.info("JWT token provider initialized with {} bit secret", secretBytes.length * 8);
     }
 
     /**

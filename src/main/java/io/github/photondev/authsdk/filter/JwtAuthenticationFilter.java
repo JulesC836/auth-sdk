@@ -56,7 +56,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 log.debug("Utilisateur authentifié: {} avec rôles: {}", username, roles);
             }
         } catch (Exception e) {
-            log.error("Erreur lors de l'authentification JWT", e);
+            log.error("Erreur lors de l'authentification JWT: {}", e.getMessage());
+            response.setStatus(401);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"error\": \"Authentication failed\"}");
+            return;
         }
 
         filterChain.doFilter(request, response);
